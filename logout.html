@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Manage your account profile and sign out securely.">
+  <title>Dashboard - Secure Portal</title>
+  <link rel="stylesheet" href="styles.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "firebase/app": "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js",
+        "firebase/auth": "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js",
+        "firebase/firestore": "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js"
+      }
+    }
+  </script>
+</head>
+<body>
+
+  <!-- Background Orbs -->
+  <div class="background-blobs">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+  </div>
+
+  <!-- Dashboard Container -->
+  <main class="auth-container" id="dashboard-container" style="display: none;">
+    <header class="auth-header">
+      <h1 id="page-title">User Profile</h1>
+      <p>Manage your account dashboard</p>
+    </header>
+
+    <div class="profile-card">
+      <!-- User Avatar / Initial -->
+      <div class="profile-avatar" id="user-avatar">-</div>
+      
+      <!-- User Profile Info -->
+      <div class="profile-info">
+        <h2 id="user-name" style="font-size: 1.5rem; font-weight: 600; margin-bottom: 5px;">User Name</h2>
+        <div class="profile-email" id="user-email">user@example.com</div>
+        <div class="profile-uid" id="user-uid">UID: ----------</div>
+      </div>
+
+      <!-- Sign Out Button -->
+      <button id="btn-logout" class="btn-submit" style="background: linear-gradient(135deg, #ef4444 0%, #ec4899 100%); box-shadow: 0 4px 15px rgba(239, 68, 68, 0.25);">
+        <span>Sign Out</span>
+        <div class="spinner" id="logout-spinner"></div>
+      </button>
+    </div>
+  </main>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Firebase Script Integration -->
+  <script type="module">
+    import { auth } from './firebase.js';
+    import { signOut, onAuthStateChanged } from "firebase/auth";
+
+    const dashboardContainer = document.getElementById('dashboard-container');
+    const userAvatar = document.getElementById('user-avatar');
+    const userName = document.getElementById('user-name');
+    const userEmail = document.getElementById('user-email');
+    const userUid = document.getElementById('user-uid');
+    const btnLogout = document.getElementById('btn-logout');
+    const logoutSpinner = document.getElementById('logout-spinner');
+    const toastContainer = document.getElementById('toast-container');
+
+    // Monitor Auth State
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        // User is signed in, populate dashboard data
+        const displayName = user.displayName || 'No Name Set';
+        const email = user.email || 'No Email';
+        const uid = user.uid;
+
+        userName.textContent = displayName;
+        userEmail.textContent = email;
+        userUid.textContent = `UID: ${uid}`;
+        
+        // Extract initials for the avatar icon
+        const initials = displayName
+          .split(' ')
+          .map(word => word[0])
+          .join('')
+          .toUpperCase()
+          .slice(0, 2);
+        userAvatar.textContent = initials || 'U';
+
+        // Reveal dashboard with a smooth fade-in
+        dashboardContainer.style.display = 'block';
+      } else {
+        // No user is signed in, redirect to login page
+        window.location.href = 'login.html';
+      }
+    });
+
+    // Helper for Toast Notifications
+    function showToast(message, type = 'error') {
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      toast.innerHTML = `
+        <span class="toast-icon">
+          ${type === 'success' 
+            ? '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
+            : '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>'
+          }
+        </span>
+        <span class="toast-message">${message}</span>
+      `;
+      toastContainer.appendChild(toast);
+
+      // Auto remove toast
+      setTimeout(() => {
+        toast.style.transform = 'translateX(120%)';
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    }
+
+    // Sign Out Action
+    btnLogout.addEventListener('click', async () => {
+      btnLogout.disabled = true;
+      logoutSpinner.style.display = 'block';
+
+      try {
+        await signOut(auth);
+        showToast('Signed out successfully!', 'success');
+        // Redirection happens via onAuthStateChanged listener
+      } catch (error) {
+        showToast(`Error signing out: ${error.message}`, 'error');
+        btnLogout.disabled = false;
+        logoutSpinner.style.display = 'none';
+      }
+    });
+  </script>
+</body>
+</html>
