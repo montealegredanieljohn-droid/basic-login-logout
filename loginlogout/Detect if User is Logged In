@@ -1,0 +1,22 @@
+// Detect if User is Logged In using Firebase Authentication
+import { auth } from './firebase.js';
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+// Listen to the authentication state changes
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    // User is logged in.
+    console.log("User is logged in:", user.email);
+    console.log("Display Name:", user.displayName);
+    console.log("UID:", user.uid);
+    
+    // Example: Redirect to the dashboard if on a guest-only page
+    // window.location.href = 'logout.html';
+  } else {
+    // User is signed out.
+    console.log("No user is logged in.");
+    
+    // Example: Redirect to the login page if trying to access a secure page
+    // window.location.href = 'login.html';
+  }
+});
