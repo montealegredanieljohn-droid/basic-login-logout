@@ -10,7 +10,8 @@
     {
       "imports": {
         "firebase/app": "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js",
-        "firebase/auth": "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js"
+        "firebase/auth": "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js",
+        "firebase/firestore": "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js"
       }
     }
   </script>
@@ -129,8 +130,9 @@
 
   <!-- Firebase Script Integration -->
   <script type="module">
-    import { auth } from './firebase.js';
+    import { auth, db } from './firebase.js';
     import { createUserWithEmailAndPassword, updateProfile, onAuthStateChanged } from "firebase/auth";
+    import { doc, setDoc } from "firebase/firestore";
 
     const registerForm = document.getElementById('register-form');
     const fullnameInput = document.getElementById('fullname');
@@ -226,6 +228,14 @@
         await updateProfile(userCredential.user, {
           displayName: fullname
         });
+
+        // Save user details to Firestore 'users' collection
+        await setDoc(doc(db, "users", userCredential.user.uid), {
+          uid: userCredential.user.uid,
+          displayName: fullname,
+          email: email,
+          createdAt: new Date().toISOString()
+        });
         
         showToast('Registration successful! Redirecting...', 'success');
         
@@ -251,6 +261,12 @@
             break;
           case 'auth/network-request-failed':
             errorMsg = 'Network connection error. Check your configuration.';
+            break;
+          case 'permission-denied':
+            errorMsg = 'Firestore write permission denied. Check your security rules.';
+            break;
+          case 'unavailable':
+            errorMsg = 'Firestore is temporarily unavailable. Check if Firestore is enabled in console.';
             break;
           default:
             if (auth.config.apiKey === 'YOUR_API_KEY') {
